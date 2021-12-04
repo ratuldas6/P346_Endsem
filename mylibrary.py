@@ -186,7 +186,7 @@ def findDeterminant(A):     #determinant function for use in applyGJ()
         print(initial) 
 
 def inverseMatrix(A):
-    #function for inverse matrix (3x3)
+    #function for inverse matrix (n x n)
     M = [[ 0.00 for i in range(len(A))] for j in range(len(A))] 
     for i in range(len(A)):     #run loop in rows
         for j in range(len(A)): #run loop in columns
@@ -679,21 +679,21 @@ def Euler(h, x, x_lim, y, func): #function for Euler method
         Y.append(y) 
     return X, Y
 
-def Predictor(x, y, n, h, f): #slightly modified.
+def Predictor(x, x_lim, y, h, f): #function for Predictor method
     """
-    a : lower bound for integration
-    b : upper bound for integration
-    f : integrand
-    N : number of iterations for integrating
+    x : lower bound
+    x_lim : upper bound
+    y : value of y at initial value of x
+    h : step size
+    f : function of x and f, also dy/dx
     
-    integral : value of the integral using Simpson method
+    X : array of values for x
+    Y : solution curve values
     """
     X = [x]
     Y = [y]
-    print(" x                                  y(x)")  
-    while x < n:              
-        print(round(x, 4), "                              ",round(y, 5))                         
-        y_1 = y + h*f(x, y)     #doing the calculations.
+    while x < x_lim:                        
+        y_1 = y + h*f(x, y)
         y += h*0.5*(f(x, y) + f(x + h, y_1))
         x += h  
         Y.append(y)
@@ -805,18 +805,26 @@ def RKN4(h, x, x_lim, y, v, f1, f2): #code for Runge-Kutta-Nyström method
 
 def RK4_2(d2ydx2, dydx, x0, y0, z0, xf, step_size): 
     """
-    Yields solution from x=x0 to x=xf
-    y(x0) = y0 & y'(x0) = z0
-    z = dy/dx
+    d2ydx2 : 2nd derivative of y wrt x
+    dydx : 1st derivative of y wrt x
+    x0 : lower bound
+    y0 : value of y at lower bound
+    z0 : value of dy/dx at x=0
+    xf : final value of x
+    step_size : step size
+    
+    x = values of x
+    y = values of solution curve, y
+    z = values of dy/dx
     """
     x = []
     y = []
-    z = []      # dy/dx
+    z = []
     x.append(x0)
     y.append(y0)
     z.append(z0)
 
-    n = int((xf-x0)/step_size)      # no. of steps
+    n = int((xf-x0)/step_size) #find number of steps to iterate for
     for i in range(n):
         x.append(x[i] + step_size)
         k1 = step_size * dydx(x[i], y[i], z[i])
@@ -867,17 +875,13 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
             if yn > yf:
                 zeta_h = z2
                 yh = yn
-
-                # calculate zeta using Lagrange interpolation
+                #Lagrange interpolation step
                 zeta = LagrangeInterpolation(zeta_h, zeta_l, yh, yl, yf)
-
-                # using this zeta to solve using RK4
+                #RK4 using updated zeta
                 x, y, z = RK4_2(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
                 return x, y, z
-
             else:
                 print("Bracketing was unsuccessful")
-
 
         elif yn > yf:
             zeta_h = z1
@@ -889,10 +893,9 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
             if yn < yf:
                 zeta_l = z2
                 yl = yn
-
-                # calculate zeta using Lagrange interpolation
+                #Lagrange interpolation step
                 zeta = LagrangeInterpolation(zeta_h, zeta_l, yh, yl, yf)
-
+                #RK4 using updated zeta
                 x, y, z = RK4_2(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
                 return x, y, z
 
@@ -906,106 +909,68 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
 #----------------------------------------------------------------------------------------------------
 #Least-square fit function set
 
-def least_square_fitting(N,A): #function for linear fit
-    """
-    N : number of iterations for integrating
-    A : 
-    integral : value of the integral using Simpson method
-    """
-    slopeval = []; intval = []
-    #initialising variables to calculate average of x,y,x^2,xy and residuals
-    sum_x = 0; sum_y = 0; sum_x2 = 0
-    sum_y2 = 0; sum_xy = 0; sum_error = 0    #R^2
-    #finding m and c. finding sum_x, sum_y, sum_x2, sum_xy, sum_y2.
-    print("Total number of observations:", N)
-    for i in range (N):
-        x=A[i][0]; y=A[i][1] 
-        print('On X-axis we have:', x, 'and on Y-axis:',y)
+def Elim(r1, r2, col, target=0):
+    fac = (r2[col]-target) / r1[col]
+    for i in range(len(r2)):
+        r2[i] -= fac * r1[i]
 
-        sum_x += x
-        slopeval.append(sum_x)
-        sum_x2 += x**2
-        sum_xy += x*y
-        sum_y += y
-        intval.append(sum_y) 
-        sum_y2 += y**2
-    mean_x = sum_x/N 
-    mean_y = sum_y/N
-    mean_xy = sum_xy/N
-    mean_x2 = sum_x2/N
+def PolyGauss(a):
+    for i in range(len(a)):
+        if a[i][i] == 0:
+            for j in range(i+1, len(a)):
+                if a[i][j] != 0:
+                    a[i], a[j] = a[j], a[i]
+                    break
+            else:
+                raise ValueError("Given matrix is not invertible")
+        for j in range(i+1, len(a)):
+            Elim(a[i], a[j], i)
+    for i in range(len(a)-1, -1, -1):
+        for j in range(i-1, -1, -1):
+            Elim(a[i], a[j], i)
+    for i in range(len(a)):
+        Elim(a[i], a[i], i, 1)
+    return a
 
-    #calculating S_xx, S_yy and S_xy
-    S_xx = sum_x2 - N*mean_x**2
-    print("S_xx:", S_xx)  
-    delta = N*S_xx
-    S_yy = sum_y2 - N*mean_y**2
-    print("S_yy:", S_yy)
-    S_xy = sum_xy - N*mean_x*mean_y
-    print("S_xy:", S_xy) 
-    sigma_x = math.sqrt(abs(S_xx/N)) #standard deviation of x
-    print("sigma_x:", sigma_x)
-    sigma_y = math.sqrt(abs(S_yy/N)) #standard deviation of y
-    print("sigma_y:", sigma_y)
-    sigma_xy = math.sqrt(abs(S_xy/N)) #square root of co-variance of x,y
-    print("sigma_xy:", sigma_xy)
+def linear_fit(X,Y): #function for producing linear fit
+    if len(X)!=len(Y):
+        print("Number of abscissa must be equal to the number of ordinates")
+    else:
+        n=len(X)
+        xmean=sum(X)/len(X)
+        ymean=sum(Y)/len(Y)
+        
+        S_xx = 0
+        S_yy = 0
+        S_xy = 0
+        std_X = 0
+        std_Y = 0
+        
+        for i in range(n):
+            S_xx = S_xx + (X[i])**2-xmean**2
+            S_yy = S_yy + Y[i]**2-ymean**2
+            S_xy += (X[i]*Y[i])-(xmean*ymean)
+            std_X += ((X[i]-xmean)**2)/n
+            std_Y += ((Y[i]-xmean)**2)/n
+            
+        m = S_xy/S_xx
+        c = ymean-m*xmean
+        sigma_x = std_X**0.5
+        sigma_y = std_Y**0.5
+        
+        Pearson_R = S_xy/((S_xx**0.5)*(S_yy**0.5))
+        
+        return m, c, Pearson_R
 
-    intercept_1 = (mean_y*sum_x2-mean_x*sum_xy)/S_xx 
-    slope = S_xy/S_xx  
-    print('\nSlope:',slope)
-    intercept_2 = mean_y - slope*mean_x
-    print('Intercept:', intercept_2,'\n')
-    #slope and intercept are regression coeff
+def polyfit_inv(a):
+    mat_1 = [[] for _ in a]
     
-    r = math.sqrt(S_xy**2/(S_xx*S_yy))#pearson's r or correlation coeff 
-    print("Pearson's r:", -r) 
-    #R^2 calculation
-    for j in range(N):
-        x=A[j][0]
-        y=A[j][1]
-        error = y-slope*x-intercept_1
-        #print('square of error:',error**2) 
-        sum_error = sum_error + error**2
-    #print('R^2:',sum_error)
-
-    #standard error calculation
-    #standard = standard deviation/sqrt(N)
-    S = math.sqrt((S_yy-slope*S_xy)/(N-2))
-    SE_intercept = S*math.sqrt(1/N + mean_x**2/S_xx)        #standard error in intercept
-    SE_slope = S/math.sqrt(S_xx)                            #standard error in slope 
-
-    #print('Error in slope:',SE_slope)
-    #print('Error in intercept:',SE_intercept)
-    return slope, intercept_2, r, intval, slopeval
-
-def polyfit(X,Y,n): #function for polynomial fit
-    """
-    X : list of values for abscissae (x-axis values)
-    Y : list of values for ordinates (y-axis values)
-    N : degree of polynomial for which fitting is done
-    """
-    try:
-        if len(X) == len(Y):
-            N, n = len(X), n + 1
-            Mat_X, Mat_Y = [[0 for i in range(n)] for j in range(n)], [0 for i in range(n)] #list of list 
-            for i in range(n):
-                for j in range(n):
-                    valX = 0
-                    for k in range(N):
-                        valX += X[k]**(i+j)
-                    Mat_X[i][j] = round(valX, 3) 
-            for i in range(n):
-                valY = 0
-                for j in range(N):
-                    valY += (X[j]**(i))*(Y[j])
-                Mat_Y[i] = round(valY, 3) 
-            L,U = crout(Mat_X) 
-            print("The Matrix is given as: ",Mat_X)
-        p = determinant(Mat_X)
-        if p != 0:
-            print("The determinant of the matrix is: ", round(p, 3))
-            Mat_result = crout_solve(L,U,Mat_Y) #calling crout for forward and backward substitutition
-            return Mat_result
-        else:
-            print("Incorrect data types received for inputs!")
-    except ValueError:
-        print("Incorrect data types received for inputs!")
+    for i,row in enumerate(a):
+        assert len(row) == len(a)
+        mat_1[i].extend(row + [0]*i + [1] + [0]*(len(a)-i-1))
+        
+    PolyGauss(mat_1)
+    out_mat = []
+    for i in range(len(mat_1)):
+        out_mat.append(mat_1[i][len(mat_1[i])//2:])
+    return out_mat
