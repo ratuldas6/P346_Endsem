@@ -841,22 +841,19 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
     y0 : value of y at x0
     xf: final value for x
     yf : value of dy/dx at x_lim
-    h : step size for the RK4 integrator
+    step_size : step size for the RK4 integrator
     z1 : guess interval lower bound
     z2 : guess interval upper bound
-    tolerance : tolerance value for defining accuracy of Shooting method
+    tol : tolerance value for defining accuracy of Shooting method
+    (defaults to 10^(-6))
     
     X : values of x
-    Y : solution curve for appropriate
+    Y : solution curve (y)
+    Z : first derivative of y wrt x
+    
     """
-    """
-    x0: Lower boundary value of x
-    y0 = y(x0)
-    xf: Upper boundary value of x
-    yf = y(xf)
-    z = dy/dx
-    """
-    x, y, z = runge_kutta(d2ydx2, dydx, x0, y0, z1, xf, step_size)
+    
+    x, y, z = RK4_2(d2ydx2, dydx, x0, y0, z1, xf, step_size)
     yn = y[-1]
 
     if abs(yn - yf) > tol:
@@ -864,7 +861,7 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
             zeta_l = z1
             yl = yn
 
-            x, y, z = runge_kutta(d2ydx2, dydx, x0, y0, z2, xf, step_size)
+            x, y, z = RK4_2(d2ydx2, dydx, x0, y0, z2, xf, step_size)
             yn = y[-1]
 
             if yn > yf:
@@ -875,7 +872,7 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
                 zeta = LagrangeInterpolation(zeta_h, zeta_l, yh, yl, yf)
 
                 # using this zeta to solve using RK4
-                x, y, z = runge_kutta(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
+                x, y, z = RK4_2(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
                 return x, y, z
 
             else:
@@ -886,7 +883,7 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
             zeta_h = z1
             yh = yn
 
-            x, y, z = runge_kutta(d2ydx2, dydx, x0, y0, z2, xf, step_size)
+            x, y, z = RK4_2(d2ydx2, dydx, x0, y0, z2, xf, step_size)
             yn = y[-1]
 
             if yn < yf:
@@ -896,7 +893,7 @@ def Shooting(d2ydx2, dydx, x0, y0, xf, yf, z1, z2, step_size, tol=1e-6):
                 # calculate zeta using Lagrange interpolation
                 zeta = LagrangeInterpolation(zeta_h, zeta_l, yh, yl, yf)
 
-                x, y, z = runge_kutta(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
+                x, y, z = RK4_2(d2ydx2, dydx, x0, y0, zeta, xf, step_size)
                 return x, y, z
 
             else:
